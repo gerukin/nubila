@@ -1,0 +1,6 @@
+Nubila embeds timezone boundary data through tzf-dist 0.0.2026-d (tzf-rs).
+Data: Open Database License 1.0; see LICENSE-timezone-data.
+Source and downloadable database: https://github.com/ringsaturn/tzf-dist
+Upstream timezone boundaries: https://github.com/evansiroky/timezone-boundary-builder
+Contains information from OpenStreetMap contributors: https://www.openstreetmap.org/copyright
+The application MIT license does not replace the database license.

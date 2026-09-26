@@ -1,0 +1,46 @@
+[package]
+name = "nubila"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+description = "Fast weather TUI and structured CLI, built in Rust with Ratatui"
+license = "MIT"
+
+[dependencies]
+tapp-ui = { path = "../tapp-ui", features = ["terminal-palette", "terminal", "persistence"] }
+anyhow = "1"
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+clap = { version = "4", features = ["derive"] }
+crossterm = "0.29"
+ratatui = "0.30.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+signal-hook = "0.3"
+tempfile = "3"
+toml = "0.9"
+unicode-width = "0.2"
+unicode-segmentation = "1.12"
+ureq = { version = "3", features = ["json"] }
+url = "2"
+tzf-rs = { version = "2", default-features = false, features = ["bundled"] }
+
+[target.'cfg(unix)'.dev-dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Console"] }
+
+[profile.release]
+lto = "thin"
+strip = true
+
+# The bundled timezone reader validates its map once on first use.
+# Keep that startup work fast in development and PTY tests too.
+[profile.dev.package.tzf-rs]
+opt-level = 3
+
+[patch.crates-io]
+crossterm = { path = "../tapp-ui/vendor/crossterm" }

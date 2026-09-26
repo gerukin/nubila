@@ -1,0 +1,23 @@
+# Nubila: coordinates avoid a geocoding request at startup.
+pinned = "tokyo"
+source = "auto"
+auto_location = true
+history_years = 10
+
+[[cities]]
+id = "tokyo"
+name = "Tokyo"
+latitude = 35.6762
+longitude = 139.6503
+
+[[cities]]
+id = "paris"
+name = "Paris"
+latitude = 48.8566
+longitude = 2.3522
+
+[[cities]]
+id = "london"
+name = "London"
+latitude = 51.5074
+longitude = -0.1278

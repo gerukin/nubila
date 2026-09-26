@@ -1,0 +1,9 @@
+/target/
+/dist/
+/.local/
+/.agents/
+/.codex/
+.env
+.env.*
+!.env.example
+/tools/release/target/
