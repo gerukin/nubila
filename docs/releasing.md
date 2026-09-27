@@ -10,14 +10,18 @@ RUSTUP_HOME. Use CARGO_BUILD_JOBS=2 and the existing xwin cache when available.
 1. Finalize version/changelog; run formatting, clippy, app and release-helper tests.
 2. Commit app and private framework sources; both must be clean.
 3. Run `cargo run --locked --manifest-path tools/release/Cargo.toml -- prepare`.
-4. Review `dist/VERSION`: six archives, licenses, target/source manifests,
+4. The helper checks the native binary's `--version` before and after archiving.
+   Review `dist/VERSION`: six archives, licenses, target/source manifests,
    SHA256SUMS, installer, release notes and generated formula/cask.
 5. Validate archive hashes and isolated installation. Record actual runtime tests.
-6. After approval, create `gerukin/nubila`, push the single initial source commit,
-   upload a draft release targeting that commit, then publish when authorized.
+6. After approval, push the committed source to `gerukin/nubila`, upload a draft
+   release targeting that commit, then publish when authorized.
 7. Copy generated recipes to Formula/nubila.rb and Casks/nubila.rb and push a
    packaging metadata commit. Test actual public install URLs; do not rebuild or
    replace uploaded archives for metadata-only fixes.
+8. Refresh the local development executable with
+   `cargo run --locked --manifest-path tools/release/Cargo.toml -- refresh-local`.
+   Confirm `nubila --version` matches the released version.
 
 `prepare` has no remote side effects. Keep SDKs, toolchains, logs and archives ignored.
 Cross-built macOS/Windows/ARM binaries must be labeled untested unless exercised on

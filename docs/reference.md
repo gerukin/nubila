@@ -12,13 +12,17 @@ cargo build --release --locked
 ./target/release/nubila config --init    # create a sample city config
 ```
 
-Requires Rust 1.89+ to build. `Cargo.lock` pins dependencies. Install locally after building:
+Requires Rust 1.89+ to build. `Cargo.lock` pins dependencies. Install the
+local development build through a symlink to `target/release/nubila`:
 
 ```sh
-mkdir -p ~/.local/bin
-install -m 755 target/release/nubila ~/.local/bin/nubila
+cargo run --locked --manifest-path tools/release/Cargo.toml -- refresh-local
 nubila --version
 ```
+
+`refresh-local` builds the native release executable, verifies its version,
+and atomically updates `~/.local/bin/nubila`. Run it again after changing the
+package version. Public installer and mise installations use their own copies.
 
 The CLI, domain logic, HTTP client, persistence,
 rendering, fixtures and tests are all Rust. Linux x86-64 is tested locally. Other

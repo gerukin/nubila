@@ -1,5 +1,5 @@
 //! Local-only publishing. No runtime dependency and no implicit build hook.
-use std::{env, error::Error, fs, path::Path, process::Command};
+use std::{env, error::Error, fs, path::Path, process::Command, time::SystemTime};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 const REPO: &str = "gerukin/nubila";
@@ -26,6 +26,51 @@ fn capture(program: &str, args: &[&str]) -> Result<String> {
         return Err(format!("{program}: {}", String::from_utf8_lossy(&out.stderr)).into());
     }
     Ok(String::from_utf8(out.stdout)?.trim().to_owned())
+}
+
+fn verify_binary_version(binary: &Path, version: &str) -> Result<()> {
+    let output = Command::new(binary).arg("--version").output()?;
+    let expected = format!("nubila {version}");
+    let actual = String::from_utf8(output.stdout)?.trim().to_owned();
+    if !output.status.success() || actual != expected {
+        return Err(format!(
+            "{} reported {actual:?}, expected {expected:?}",
+            binary.display()
+        )
+        .into());
+    }
+    Ok(())
+}
+
+fn refresh_local(version: &str) -> Result<()> {
+    if env::consts::OS != "linux" {
+        return Err("Run the local development install on Linux".into());
+    }
+    run(
+        "cargo",
+        &["build", "--release", "--locked", "--bin", "nubila"],
+    )?;
+    let binary = env::current_dir()?.join("target/release/nubila");
+    verify_binary_version(&binary, version)?;
+    let home = env::var_os("HOME").ok_or("HOME is not set")?;
+    let install_dir = Path::new(&home).join(".local/bin");
+    fs::create_dir_all(&install_dir)?;
+    let link = install_dir.join("nubila");
+    let nonce = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)?
+        .as_nanos();
+    let pending = install_dir.join(format!(".nubila-link-{}-{nonce}", std::process::id()));
+    std::os::unix::fs::symlink(&binary, &pending)?;
+    if let Err(error) = fs::rename(&pending, &link) {
+        let _ = fs::remove_file(&pending);
+        return Err(error.into());
+    }
+    if fs::read_link(&link)? != binary {
+        return Err("Installed Nubila link points to the wrong binary".into());
+    }
+    verify_binary_version(&link, version)?;
+    println!("Installed {} -> {}", link.display(), binary.display());
+    Ok(())
 }
 
 fn version(manifest: &str) -> Result<&str> {
@@ -290,6 +335,10 @@ fn prepare(version: &str) -> Result<()> {
                 .join(binary),
             stage.join(binary),
         )?;
+        let native = target == format!("{}-unknown-linux-gnu", env::consts::ARCH);
+        if native {
+            verify_binary_version(&stage.join(binary), version)?;
+        }
         fs::copy("LICENSE", stage.join("LICENSE"))?;
         fs::copy(
             dist.join("THIRD_PARTY.html"),
@@ -337,6 +386,19 @@ fn prepare(version: &str) -> Result<()> {
                     ".",
                 ],
             )?;
+        }
+        if native {
+            fs::remove_file(stage.join(binary))?;
+            run(
+                "tar",
+                &[
+                    "-xzf",
+                    archive_path,
+                    "-C",
+                    stage.to_str().ok_or("Non-UTF8 stage path")?,
+                ],
+            )?;
+            verify_binary_version(&stage.join(binary), version)?;
         }
         let digest = capture("sha256sum", &[archive_path])?;
         let hash = digest
@@ -389,7 +451,8 @@ fn main() -> Result<()> {
             Ok(())
         }
         Some("prepare") => prepare(version),
-        Some(_) => Err("Usage: nubila-release [plan|prepare]".into()),
+        Some("refresh-local") => refresh_local(version),
+        Some(_) => Err("Usage: nubila-release [plan|prepare|refresh-local]".into()),
     }
 }
 
@@ -417,5 +480,11 @@ mod tests {
         assert!(cask.contains("binary \"nubila\"") && cask.contains("depends_on macos"));
         assert!(cask.contains("sha256 arm:") && cask.contains("intel:"));
         assert!(version("[package]\nversion = \"0.1\"").is_err());
+    }
+
+    #[test]
+    fn version_gate_rejects_a_mismatched_executable() {
+        let binary = std::env::current_exe().unwrap();
+        assert!(verify_binary_version(&binary, "0.1.0").is_err());
     }
 }
