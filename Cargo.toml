@@ -37,6 +37,9 @@ windows-sys = { version = "0.61", features = ["Win32_System_Console"] }
 lto = "thin"
 strip = true
 
+[profile.dev]
+debug = "line-tables-only"
+
 # The bundled timezone reader validates its map once on first use.
 # Keep that startup work fast in development and PTY tests too.
 [profile.dev.package.tzf-rs]
